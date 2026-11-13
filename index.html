@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071c18">
+<title>FAIR BLACKJACK</title>
+<style>
+:root{color-scheme:dark;--bg:#07110f;--panel:#10221e;--panel2:#142b25;--line:#29483e;--gold:#c5b37a;--muted:#a7b8b0;--green:#42bd86;--red:#e47e7e}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#15352b 0,#07110f 48%);color:#edf5ef;font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:24px 18px 16px;text-align:center;border-bottom:1px solid var(--line)}
+.brand{letter-spacing:.22em;color:var(--gold);font-size:12px}h1{margin:7px 0 3px;font-size:28px;letter-spacing:.08em}header p{margin:0;color:var(--muted);font-size:12px}
+main{max-width:950px;margin:auto;padding:16px;display:grid;gap:14px}
+.panel{background:linear-gradient(145deg,#122820,#0d1c18);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 8px 24px #0004}
+h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0 0 13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+select,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:11px;background:#0a1713;color:#f2f7f3}
+button{cursor:pointer;background:#173a2d;border-color:#32634e}button:active{transform:scale(.98)}button.secondary{background:#182520}button.danger{background:#382020;border-color:#754444}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.field{min-width:110px;flex:1}
+.cardgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.cardbtn{padding:10px 4px;background:#142a23;min-height:58px;font-weight:650}.cardbtn small{display:block;color:var(--muted);font-size:10px;font-weight:400}
+.red{color:#ff9292}.hand{display:flex;flex-wrap:wrap;gap:7px;min-height:38px}
+.playing{border:1px solid var(--gold);border-radius:8px;padding:7px 9px;background:#1a3028}.playing button{padding:1px 5px;margin-left:6px;background:#432626}
+.statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.stat{background:#091813;border:1px solid var(--line);border-radius:11px;padding:12px}.stat strong{display:block;font-size:23px;color:var(--green);font-variant-numeric:tabular-nums}.stat span{color:var(--muted);font-size:11px}
+.note{font-size:12px;color:var(--muted);line-height:1.5}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar button{flex:1}
+#message{color:var(--gold);min-height:18px;font-size:12px}
+@media(min-width:700px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.cardgrid{grid-template-columns:repeat(7,minmax(0,1fr))}.statgrid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<header><div class="brand">PRECISION • PROBABILITY • TRANSPARENCY</div><h1>FAIR BLACKJACK</h1><p>Live shoe composition & next-card mathematics</p></header>
+<main>
+<section class="panel">
+<h2>Shoe configuration</h2>
+<div class="row"><div class="field"><label for="decks">Number of decks</label><select id="decks"><option>1</option><option>2</option><option>4</option><option>6</option><option selected>8</option></select></div><div class="field"><label>Cards in shoe</label><div id="remaining" style="font-size:25px;color:var(--green);padding:7px 0">416</div></div></div>
+<p class="note">Choose a card below to expose it. Each exact card identity is limited by the selected number of decks.</p>
+</section>
+<section class="panel">
+<h2>Live shoe statistics</h2>
+<div class="statgrid">
+<div class="stat"><strong id="deckleft">8.00</strong><span>Deck equivalents remaining</span></div>
+<div class="stat"><strong id="aces">32</strong><span>Aces remaining</span></div>
+<div class="stat"><strong id="tens">128</strong><span>10-value cards remaining</span></div>
+<div class="stat"><strong id="exposed">0</strong><span>Cards exposed</span></div>
+</div>
+</section>
+<section class="panel wide">
+<h2>Choose a card to expose</h2>
+<div id="picker" class="cardgrid"></div>
+<div id="message"></div>
+</section>
+<section class="panel">
+<h2>My hand <span class="note">(up to 7 cards)</span></h2><div id="myhand" class="hand"></div>
+</section>
+<section class="panel">
+<h2>Dealer cards</h2><div id="dealer" class="hand"></div>
+</section>
+<section class="panel">
+<h2>Other players</h2><div id="others" class="hand"></div>
+</section>
+<section class="panel wide">
+<h2>Next-card probabilities — My hand</h2>
+<div class="statgrid">
+<div class="stat"><strong id="bust">—</strong><span>Bust if Hit</span></div>
+<div class="stat"><strong id="survive">—</strong><span>Survival if Hit</span></div>
+<div class="stat"><strong id="improve">—</strong><span>Improve hand on next card</span></div>
+<div class="stat"><strong id="total">—</strong><span>Cards that can be drawn</span></div>
+</div>
+<p class="note">Bust and Survival describe the next single card only. Multi-card outcomes require a decision-tree simulation and are not represented by these percentages. Percentages update from all exposed cards in the shared shoe.</p>
+</section>
+<section class="panel wide">
+<h2>Controls</h2><div class="toolbar"><button class="secondary" id="undo">Undo last card</button><button class="secondary" id="end">End round (keep shoe)</button><button class="danger" id="reset">Reset shoe</button></div>
+<p class="note">This prototype runs locally in this browser. It does not provide casino-specific strategy, side-bet EV, dealer outcome simulation, cloud accounts, or video recognition.</p>
+</section>
+</main>
+<script>
+const suits=[['♠','Spades'],['♥','Hearts'],['♦','Diamonds'],['♣','Clubs']],ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let decks=8,counts={},hands={my:[],dealer:[],others:[]},history=[];
+const id=(r,s)=>r+'-'+s;
+function init(){counts={};for(const r of ranks)for(const s of suits)counts[id(r,s)]=decks;hands={my:[],dealer:[],others:[]};history=[];render()}
+function total(){return Object.values(counts).reduce((a,b)=>a+b,0)}
+function cardValue(r){return r==='A'?11:['J','Q','K','10'].includes(r)?10:Number(r)}
+function handValue(cards){let v=0,a=0;cards.forEach(c=>{let x=cardValue(c.r);v+=x;if(c.r==='A')a++});while(v>21&&a){v-=10;a--}return v}
+function save(){history.push(JSON.stringify({counts,hands}));if(history.length>100)history.shift()}
+function add(r,s){let target=window.targetHand||'my';if(counts[id(r,s)]<=0){msg('No copies of this card remain in the shoe.');return}if(target==='my'&&hands.my.length>=7){msg('My Hand is limited to 7 cards.');return}save();counts[id(r,s)]--;hands[target].push({r,s});msg('Card added to '+({my:'My Hand',dealer:'Dealer Cards',others:'Other Players'}[target])+'.');render()}
+function remove(hand,i){save();let c=hands[hand].splice(i,1)[0];counts[id(c.r,c.s)]++;render()}
+function msg(t){document.getElementById('message').textContent=t}
+function pct(n,d){return d?((100*n/d).toFixed(2)+'%'):'—'}
+function render(){
+ document.getElementById('remaining').textContent=total();
+ document.getElementById('deckleft').textContent=(total()/52).toFixed(2);
+ document.getElementById('aces').textContent=suits.reduce((a,s)=>a+counts[id('A',s[0])],0);
+ document.getElementById('tens').textContent=['10','J','Q','K'].reduce((a,r)=>a+suits.reduce((b,s)=>b+counts[id(r,s[0])],0),0);
+ document.getElementById('exposed').textContent=decks*52-total();
+ const picker=document.getElementById('picker');picker.innerHTML='';
+ for(const r of ranks)for(const [s] of suits){let b=document.createElement('button');b.className='cardbtn '+(['♥','♦'].includes(s)?'red':'');b.disabled=counts[id(r,s)]===0;b.innerHTML=r+s+'<small>'+counts[id(r,s)]+' left</small>';b.onclick=()=>add(r,s);picker.append(b)}
+ for(const [key,label] of [['my','myhand'],['dealer','dealer'],['others','others']]){let el=document.getElementById(label);el.innerHTML='';hands[key].forEach((c,i)=>{let x=document.createElement('span');x.className='playing '+(['♥','♦'].includes(c.s)?'red':'');x.textContent=c.r+c.s;let b=document.createElement('button');b.textContent='×';b.onclick=()=>remove(key,i);x.append(b);el.append(x)})}
+ let left=total(),bust=0,improve=0,v=handValue(hands.my);
+ for(const r of ranks)for(const [s] of suits){let n=counts[id(r,s)];if(!n)continue;let nv=handValue([...hands.my,{r,s}]);if(nv>21)bust+=n;else if(nv>v)improve+=n}
+ document.getElementById('bust').textContent=pct(bust,left);document.getElementById('survive').textContent=pct(left-bust,left);document.getElementById('improve').textContent=pct(improve,left);document.getElementById('total').textContent=left;
+}
+document.querySelectorAll('.cardbtn');
+document.getElementById('decks').onchange=e=>{decks=Number(e.target.value);init()};
+document.getElementById('undo').onclick=()=>{let x=history.pop();if(!x){msg('Nothing to undo.');return}let d=JSON.parse(x);counts=d.counts;hands=d.hands;render();msg('Last change undone.')};
+document.getElementById('end').onclick=()=>{save();hands={my:[],dealer:[],others:[]};render();msg('Round cleared. Exposed cards remain removed from the shoe.')};
+document.getElementById('reset').onclick=()=>{if(confirm('Reset the shoe and clear all exposed cards?'))init()};
+for(const [key,btn] of [['my','myhand'],['dealer','dealer'],['others','others']]){document.getElementById(btn).addEventListener('click',()=>{})}
+document.querySelectorAll('section.panel').forEach(p=>{let h=p.querySelector('h2');if(h&&['My hand (up to 7 cards)','Dealer cards','Other players'].includes(h.textContent.toLowerCase())){}});
+['myhand','dealer','others'].forEach((x,i)=>{document.getElementById(x).parentElement.addEventListener('click',()=>{window.targetHand=['my','dealer','others'][i]})});
+window.targetHand='my';init();
+</script>
+</body></html>
