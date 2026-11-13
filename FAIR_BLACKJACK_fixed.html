@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071b16"><title>FAIR BLACKJACK</title>
+<style>
+:root{color-scheme:dark;--bg:#07120f;--panel:#10231d;--panel2:#142c24;--line:#315344;--gold:#c8b77d;--green:#56d49a;--muted:#afbeb7;--red:#ff9292}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#173c2e,#07120f 58%);color:#f1f6f2;font:15px system-ui,-apple-system,sans-serif}
+header{text-align:center;padding:22px 15px 16px;border-bottom:1px solid var(--line)}header small{color:var(--gold);letter-spacing:.22em}h1{margin:6px 0;font-size:27px;letter-spacing:.08em}header p{margin:0;color:var(--muted);font-size:12px}
+main{max-width:1000px;margin:auto;padding:14px;display:grid;gap:13px}.panel{background:linear-gradient(145deg,#132a21,#0d1d17);border:1px solid var(--line);border-radius:15px;padding:15px;min-width:0}
+h2{font-size:13px;color:var(--gold);letter-spacing:.13em;text-transform:uppercase;margin:0 0 12px}
+label{display:block;color:var(--muted);font-size:12px;margin:0 0 5px}select,button{font:inherit;color:#f4f8f5;background:#0a1913;border:1px solid var(--line);border-radius:9px;padding:10px}button{background:#194331;border-color:#397354;cursor:pointer}button:disabled{opacity:.35;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.field{flex:1;min-width:120px}.big{font-size:25px;color:var(--green);padding:5px 0;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.cardbtn{padding:9px 3px;min-height:52px;font-weight:700}.cardbtn small{display:block;color:var(--muted);font-size:10px;font-weight:400}.red{color:var(--red)}
+.cards{display:flex;flex-wrap:wrap;gap:6px;min-height:34px}.chip{border:1px solid var(--gold);border-radius:7px;padding:6px 8px;background:#1a3026}.chip button{padding:0 4px;margin-left:5px;background:#492727;border-color:#794343}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{background:#091811;border:1px solid var(--line);border-radius:10px;padding:11px}.stat strong{display:block;font-size:22px;color:var(--green);font-variant-numeric:tabular-nums}.stat span{font-size:11px;color:var(--muted)}
+.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:12px}td,th{padding:7px 5px;text-align:center;border-bottom:1px solid #294237}th{color:var(--gold);font-weight:600}td:first-child,th:first-child{text-align:left}
+.note{font-size:11px;color:var(--muted);line-height:1.5}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}.warn{color:var(--gold);min-height:18px;font-size:12px}
+@media(min-width:720px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}.grid{grid-template-columns:repeat(7,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style></head>
+<body>
+<header><small>PRECISION • PROBABILITY • TRANSPARENCY</small><h1>FAIR BLACKJACK</h1><p>Live shoe counter and next-card mathematics</p></header>
+<main>
+<section class="panel"><h2>Shoe setup</h2><div class="row">
+<div class="field"><label for="decks">Number of decks</label><select id="decks"><option>1</option><option>2</option><option>4</option><option>6</option><option selected>8</option></select></div>
+<div class="field"><label>Cards remaining</label><div class="big" id="remaining">416 / 416</div></div>
+<div class="field"><label>Decks remaining</label><div class="big" id="deckleft">8.00</div></div>
+</div><p class="note">Select the destination first, then tap a card. Every exposed card is removed from the same shared shoe.</p></section>
+<section class="panel"><h2>Live probability — My Hand</h2><div class="stats">
+<div class="stat"><strong id="bust">—</strong><span>Bust if Hit (next card)</span></div><div class="stat"><strong id="survive">—</strong><span>Survival if Hit (next card)</span></div><div class="stat"><strong id="improve">—</strong><span>Improve total (next card)</span></div><div class="stat"><strong id="handtotal">0</strong><span>Current hand total</span></div></div><p class="note">These are exact one-card probabilities from the remaining shoe, not multi-hit or dealer-outcome probabilities.</p></section>
+<section class="panel wide"><h2>Card entry</h2><div class="row" style="margin-bottom:12px"><div class="field"><label for="target">Add selected card to</label><select id="target"><option value="my">My Hand</option><option value="dealer">Dealer Cards</option><option value="others">Other Players</option></select></div></div><div id="picker" class="grid"></div><div id="message" class="warn"></div></section>
+<section class="panel"><h2>My Hand <span class="note">(maximum 7 cards)</span></h2><div id="my" class="cards"></div></section>
+<section class="panel"><h2>Dealer Cards</h2><div id="dealer" class="cards"></div></section>
+<section class="panel"><h2>Other Players</h2><div id="others" class="cards"></div></section>
+<section class="panel wide"><h2>Remaining cards by rank</h2><div class="tablewrap"><table id="ranktable"></table></div></section>
+<section class="panel wide"><h2>Remaining cards by suit</h2><div class="tablewrap"><table id="suittable"></table></div></section>
+<section class="panel wide"><h2>Controls</h2><div class="actions"><button id="undo">Undo last card</button><button id="end">End round — keep shoe</button><button id="reset" style="background:#482727">Reset shoe</button></div><p class="note">This is a local browser prototype. Side-bet EV/paytables, full dealer simulation, exact strategy engine, accounts, subscriptions and video recognition are not included yet.</p></section>
+</main>
+<script>
+const suits=[['♠','Spades'],['♥','Hearts'],['♦','Diamonds'],['♣','Clubs']],ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+let decks=8,remaining={},hands={my:[],dealer:[],others:[]},undoStack=[];
+const key=(r,s)=>r+'|'+s, total=()=>Object.values(remaining).reduce((a,b)=>a+b,0);
+function fresh(){remaining={};for(const r of ranks)for(const [s] of suits)remaining[key(r,s)]=decks;hands={my:[],dealer:[],others:[]};undoStack=[];render();say('Shoe reset.')}
+function snapshot(){undoStack.push(JSON.stringify({remaining,hands}));if(undoStack.length>100)undoStack.shift()}
+function val(r){return r==='A'?11:['10','J','Q','K'].includes(r)?10:Number(r)}
+function handValue(cards){let n=0,aces=0;for(const c of cards){n+=val(c.r);if(c.r==='A')aces++}while(n>21&&aces){n-=10;aces--}return n}
+function say(t){document.getElementById('message').textContent=t}
+function add(r,s){const dest=document.getElementById('target').value;if(remaining[key(r,s)]<=0){say('No copies of this exact card remain.');return}if(dest==='my'&&hands.my.length>=7){say('My Hand is limited to 7 cards.');return}snapshot();remaining[key(r,s)]--;hands[dest].push({r,s});render();say(r+s+' added to '+({my:'My Hand',dealer:'Dealer Cards',others:'Other Players'}[dest])+'.')}
+function remove(dest,i){snapshot();const c=hands[dest].splice(i,1)[0];remaining[key(c.r,c.s)]++;render();say('Card returned to the shoe.')}
+function pct(n,d){return d?((100*n/d).toFixed(2)+'%'):'—'}
+function render(){
+ const left=total();document.getElementById('remaining').textContent=left+' / '+(decks*52);document.getElementById('deckleft').textContent=(left/52).toFixed(2);
+ const picker=document.getElementById('picker');picker.innerHTML='';
+ for(const r of ranks)for(const [s] of suits){const n=remaining[key(r,s)],b=document.createElement('button');b.className='cardbtn'+(['♥','♦'].includes(s)?' red':'');b.disabled=n===0;b.innerHTML=r+s+'<small>'+n+' left</small>';b.onclick=()=>add(r,s);picker.append(b)}
+ for(const dest of ['my','dealer','others']){const el=document.getElementById(dest);el.innerHTML='';hands[dest].forEach((c,i)=>{const span=document.createElement('span');span.className='chip'+(['♥','♦'].includes(c.s)?' red':'');span.textContent=c.r+c.s;const x=document.createElement('button');x.textContent='×';x.setAttribute('aria-label','Remove '+c.r+c.s);x.onclick=()=>remove(dest,i);span.append(x);el.append(span)})}
+ const v=handValue(hands.my);let bust=0,improve=0;for(const r of ranks)for(const [s] of suits){const n=remaining[key(r,s)];if(!n)continue;const next=handValue([...hands.my,{r,s}]);if(next>21)bust+=n;else if(next>v)improve+=n}
+ document.getElementById('bust').textContent=pct(bust,left);document.getElementById('survive').textContent=pct(left-bust,left);document.getElementById('improve').textContent=pct(improve,left);document.getElementById('handtotal').textContent=hands.my.length?String(v):'0';
+ const rankRows=ranks.map(r=>{const n=suits.reduce((a,[s])=>a+remaining[key(r,s)],0);return `<tr><td>${r}</td><td>${n}</td></tr>`}).join('');
+ document.getElementById('ranktable').innerHTML='<tr><th>Rank</th><th>Remaining</th></tr>'+rankRows;
+ document.getElementById('suittable').innerHTML='<tr><th>Suit</th><th>Remaining</th></tr>'+suits.map(([s,name])=>`<tr><td>${s} ${name}</td><td>${ranks.reduce((a,r)=>a+remaining[key(r,s)],0)}</td></tr>`).join('');
+}
+document.getElementById('decks').addEventListener('change',e=>{decks=Number(e.target.value);fresh()});
+document.getElementById('undo').onclick=()=>{const prev=undoStack.pop();if(!prev){say('Nothing to undo.');return}const state=JSON.parse(prev);remaining=state.remaining;hands=state.hands;render();say('Last change undone.')};
+document.getElementById('end').onclick=()=>{snapshot();hands={my:[],dealer:[],others:[]};render();say('Round cleared. All exposed cards remain removed from the shoe.')};
+document.getElementById('reset').onclick=()=>{if(confirm('Reset the shoe and clear all exposed cards?'))fresh()};
+fresh();
+</script></body></html>
